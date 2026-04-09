@@ -26,8 +26,8 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
 
 // 6. ตอบคำถามสุขภาพ (ส่วนสูง/น้ำหนัก)
   if (await page.locator('#body-height').isVisible()) {
-      await page.locator('#body-height').fill('160');
-      await page.locator('#body-weight').fill('50');
+      await page.locator('#body-height').fill('164');
+      await page.locator('#body-weight').fill('70');
       await page.getByRole('button', { name: 'ต่อไป' }).click();
   }
 
@@ -37,11 +37,18 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
       // เลือก "ไม่สูบ" (ref=e79)
       await page.getByRole('button', { name: 'ไม่สูบ' }).click();
   }
+      // 6.2 เพิ่มเติม: ตอบคำถามเรื่องประวัติครอบครัว (อ้างอิงจาก Snapshot ref=e84)
+  const familyHistoryQuestion = page.getByText(/บิดา มารดา พี่ – น้อง/i);
+  if (await familyHistoryQuestion.isVisible()) {
+      // เลือก "ไม่เคย / ไม่มี" (ref=e93)
+      await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
+  }
 
   // 7. คลิก "ดูราคาของคุณ"
-  // หลังจากตอบคำถามครบ ปุ่มนี้ควรจะปรากฏขึ้นมา
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
-  await expect(getQuoteBtn).toBeVisible({ timeout: 15000 });
+  // แนะนำให้ใช้ waitFor ก่อน expect เพื่อความชัวร์ในกรณีเว็บประมวลผลช้า
+  await getQuoteBtn.waitFor({ state: 'visible', timeout: 15000 });
+  await expect(getQuoteBtn).toBeVisible();
   await getQuoteBtn.click();
 
   // 8. ตรวจสอบหน้าสรุปราคา (หน้าสุดท้าย)
