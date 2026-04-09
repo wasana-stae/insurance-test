@@ -1,42 +1,44 @@
 import { test, expect } from '@playwright/test';
 
-test('test', async ({ page }) => {
-  // เพิ่ม Timeout รวมของ Test นี้เป็น 2 นาที (เพราะหน้าประเมินราคาอาจโหลดช้า)
-  test.setTimeout(120000);
+test('Roojai Travel Insurance - Get Quote Flow', async ({ page }) => {
+  // ตั้ง Timeout รวมของ Test นี้ (ป้องกันกรณีหน้าเว็บค้าง)
+  test.setTimeout(60000);
 
-  // given go to roojai.com
-  await page.goto('https://www.roojai.com/', { waitUntil: 'networkidle' });
+  // 1. Given: เข้าหน้าเว็บ Roojai
+  await page.goto('https://www.roojai.com/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'เช็คราคา' }).click();
   await page.getByRole('link', { name: 'Get quote travel insurance' }).click();
 
-  // when click on "เดินทางต่างประเทศ ท่องเที่ยวออกสู่โลกกว้าง"
+  // 2. When: เลือกประเภทการเดินทางและจุดหมาย
   await page.getByRole('button', { name: 'เดินทางต่างประเทศ ท่องเที่ยวออกสู่โลกกว้าง' }).click();
   await page.getByRole('button', { name: 'เลือกจุดหมายปลายทาง' }).click();
-
-  // then select "China"
   await page.getByRole('button', { name: 'China' }).click();
   await page.getByRole('button', { name: 'ปิด' }).click();
   await page.getByRole('button', { name: 'ต่อไป ↓' }).click();
+
+  // 3. ข้อมูลผู้เดินทางและวันที่
   await page.getByRole('img', { name: 'Single' }).click();
   await page.getByRole('radio', { name: '- 60 ปี' }).check();
   await page.getByRole('textbox', { name: 'เลือกช่วงวันที่' }).click();
   
-  // เลือกวันที่
+  // เลือกวันที่ (ระบุวันที่ให้ชัดเจน)
   await page.getByLabel('เมษายน 12,').click();
   await page.getByLabel('เมษายน 30,').first().click();
   await page.getByRole('button', { name: 'ต่อไป ↓' }).click();
 
-  // เพิ่ม Timeout เฉพาะจุดนี้เป็น 30 วินาที เพื่อรอหน้าประเมินราคาโหลด
+  // 4. Click เพื่อดูราคาประเมิน
   await page.getByRole('button', { name: 'ดูราคาของคุณ' }).click();
 
-  // รันให้มั่นใจว่าหน้าประเมินราคาโหลดเสร็จ (รอให้ Element บางอย่างในหน้านั้นปรากฏ)
-  // สมมติว่าหน้าประเมินราคามีข้อความว่า "แผนประกันของคุณ"
-  // await expect(page.getByText('แผนประกันของคุณ')).toBeVisible({ timeout: 30000 });
+  // 5. Then: รอให้หน้าประเมินราคาโหลดเสร็จ (ตรวจสอบจากหัวข้อหรือปุ่มซื้อ)
+  // ใช้การรอ Element แทนการรอเวลา เพื่อให้ Test จบได้ทันทีที่หน้าเว็บพร้อม
+  const priceDisplay = page.locator('.price-display, #quote-result-container').first(); 
+  await priceDisplay.waitFor({ state: 'visible', timeout: 20000 });
 
-  // Screenshot หน้าประเมินราคา
-  await page.screenshot({ path: 'test-results/search-report.png', fullPage: true });
+  // 6. Screenshot และจบการทำงานทันที
+  await page.screenshot({ 
+    path: 'test-results/quote-report.png', 
+    fullPage: true 
+  });
 
-  // --- ส่วนที่เพิ่มเพื่อให้เราดูหน้าจอทัน ---
-  // รอ 10 วินาทีให้เราดูหน้าจอประเมินราคาก่อนปิด Browser (เฉพาะตอนรันแบบ Headed)
-  await page.waitForTimeout(10000); 
+  // จบ Flow ตรงนี้ ไม่มีการรอต่อ (Test จะ Complete และปิด Browser ทันที)
 });
