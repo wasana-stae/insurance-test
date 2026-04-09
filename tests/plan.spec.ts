@@ -22,14 +22,26 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
   // 6. คลิกเลือกเพศ: หญิงโสด
   await page.getByRole('button', { name: 'หญิงโสด' }).click();
 
-  // 7. ระบุวันเกิด (ใช้ pressSequentially แทน fill เพื่อให้ระบบเว็บตรวจจับการพิมพ์ได้แม่นยำขึ้น)
-  // ใส่ delay เล็กน้อยระหว่างตัวอักษรเพื่อจำลองการพิมพ์ของมนุษย์
-  await page.locator('#dd-dob').pressSequentially('25', { delay: 100 });
-  await page.locator('#mm-dob').pressSequentially('08', { delay: 100 });
-  await page.locator('#yyyy-dob').pressSequentially('1994', { delay: 100 });
+ // 7. ระบุวันเกิด - แก้ไขโดยการเน้นการ Focus และตรวจสอบความพร้อมของปุ่ม
+  const dayInput = page.locator('#dd-dob');
+  const monthInput = page.locator('#mm-dob');
+  const yearInput = page.locator('#yyyy-dob');
+  const nextBtn = page.getByRole('button', { name: 'ต่อไป' }).first();
 
-  // 8. คลิกปุ่ม "ต่อไป" หลังกรอกวันเกิดเสร็จ
-  await page.getByRole('button', { name: 'ต่อไป' }).first().click();
+  // ล้างข้อมูลเก่าและพิมพ์ใหม่ให้มั่นใจ
+  await dayInput.click();
+  await dayInput.fill('25');
+  
+  await monthInput.click();
+  await monthInput.fill('08');
+  
+  await yearInput.click();
+  await yearInput.fill('1994');
+
+  // ตรวจสอบว่าปุ่ม "ต่อไป" ต้องหายจากสถานะ disabled ก่อนคลิก
+  // Playwright จะรอให้อัตโนมัติด้วยคำสั่งคลิก แต่การเช็ค enabled จะช่วยลดปัญหา Flaky เทส
+  await expect(nextBtn).toBeEnabled({ timeout: 10000 });
+  await nextBtn.click();
 
   // 9. ตอบคำถามสุขภาพ (ส่วนสูง/น้ำหนัก)
   if (await page.locator('#body-height').isVisible()) {
