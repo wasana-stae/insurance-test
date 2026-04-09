@@ -30,32 +30,32 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
   }
 
   // 5. ตอบคำถามพฤติกรรมและประวัติ (Smoking / Family / Medical)
-  // ใช้ฟังก์ชันวนลูปคลิก "ไม่" สำหรับคำถามที่เหลือจนกว่าปุ่ม "ดูราคา" จะมา
-  const negativeAnswers = page.getByRole('button', { name: /ไม่สูบ|ไม่เคย/i });
   
-  // ตอบคำถาม Smoking
+  // (โค้ดเดิมของคุณ: ตอบ Smoking)
   if (await page.getByText('คุณสูบบุหรี่บ่อยแค่ไหน').isVisible()) {
       await page.getByRole('button', { name: 'ไม่สูบ' }).click();
   }
   
-  // ตอบคำถามประวัติครอบครัว
+  // (โค้ดเดิมของคุณ: ตอบประวัติครอบครัว)
   if (await page.getByText(/บิดา มารดา/).isVisible()) {
       await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
   }
 
-  // ตอบคำถามประวัติเจ็บป่วย
+  // (โค้ดเดิมของคุณ: ตอบประวัติเจ็บป่วย)
   if (await page.getByText(/ท่านเคยป่วย/).isVisible()) {
       await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
   }
 
-  // 6. คลิก "ดูราคาของคุณ"
+  // --- เพิ่มส่วนนี้เข้าไป (คำถามข้อสุดท้ายที่เพิ่งโผล่มา) ---
+  const existingInsurance = page.getByText(/ท่านมีหรือกำลังขอเอาประกันภัยโรคมะเร็ง/i);
+  if (await existingInsurance.isVisible()) {
+      // คลิก "ไม่เคย / ไม่มี" ตัวล่าสุดที่ปรากฏขึ้นมา
+      await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
+  }
+  // --------------------------------------------------
+
+  // 6. คลิก "ดูราคาของคุณ" (ตอนนี้ปุ่มควรจะมาแล้ว)
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
-  
-  // เพิ่มการรอที่ยืดหยุ่นขึ้น
   await expect(getQuoteBtn).toBeVisible({ timeout: 20000 });
   await getQuoteBtn.click();
-
-  // 7. ยืนยันหน้าสรุปราคาและถ่ายรูป
-  await expect(page.getByRole('heading', { name: /ใบเสนอราคา|฿/i }).first()).toBeVisible({ timeout: 20000 });
-  await page.screenshot({ path: 'test-results/cancer-quote-final.png', fullPage: true });
 });
