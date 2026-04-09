@@ -70,16 +70,26 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
   }
 
-  // 14. ตอบคำถามเรื่องอาชีพและอุตสาหกรรม (ข้อสุดท้าย)
-  if (await page.getByText(/คุณเป็นคนงาน หรือ แรงงาน ในอุตสาหกรรม/i).isVisible()) {
+  // 14. ตอบคำถามเรื่องอาชีพและอุตสาหกรรม (ถ้ามี)
+  const industryLoc = page.getByText(/คุณเป็นคนงาน หรือ แรงงาน/i);
+  if (await industryLoc.isVisible()) {
     await page.getByRole('button', { name: 'ไม่ใช่' }).click();
   }
 
   // 15. คลิกปุ่ม "ดูราคาของคุณ"
+  // เพิ่มการรอโหลดเครือข่ายเพื่อให้มั่นใจว่า Logic หลังบ้านประมวลผลคำตอบครบทุกข้อแล้ว
+  await page.waitForLoadState('networkidle');
+
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
+  
+  // ตรวจสอบว่ามีคำถามอื่นหลงเหลืออยู่หรือไม่ ถ้าปุ่มยังไม่มา
+  if (!(await getQuoteBtn.isVisible())) {
+      // ลองกด Enter เพื่อกระตุ้นระบบ (บางครั้ง UI ไม่ Update)
+      await page.keyboard.press('Enter');
+  }
+
   await getQuoteBtn.waitFor({ state: 'visible', timeout: 20000 });
   await getQuoteBtn.click();
-
   // 16. ตรวจสอบหน้าสรุปราคา และถ่าย Screenshot
   // รอจนกว่าจะเห็นสัญลักษณ์ราคา (฿) หรือคำว่า "ใบเสนอราคา"
   await expect(page.getByText(/ใบเสนอราคา|฿/i).first()).toBeVisible({ timeout: 30000 });
