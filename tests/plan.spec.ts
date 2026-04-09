@@ -43,12 +43,18 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
       // เลือก "ไม่เคย / ไม่มี" (ref=e93)
       await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
   }
+      // 6.3 เพิ่มเติม: ตอบคำถามเรื่องประวัติการเจ็บป่วย (มะเร็ง/ตับอักเสบ/HIV) (ref=e95)
+  const medicalHistoryQuestion = page.getByText(/ท่านเคยป่วย หรือได้รับการรักษาจากแพทย์ด้วยโรคต่อไปนี้/i);
+  if (await medicalHistoryQuestion.isVisible()) {
+      // เลือก "ไม่เคย / ไม่มี" (ref=e105)
+      await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
+  }
 
   // 7. คลิก "ดูราคาของคุณ"
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
-  // แนะนำให้ใช้ waitFor ก่อน expect เพื่อความชัวร์ในกรณีเว็บประมวลผลช้า
+  
+  // ใช้ waitFor เพื่อรอให้ปุ่มปรากฏหลังจากตอบคำถามครบ
   await getQuoteBtn.waitFor({ state: 'visible', timeout: 15000 });
-  await expect(getQuoteBtn).toBeVisible();
   await getQuoteBtn.click();
 
   // 8. ตรวจสอบหน้าสรุปราคา (หน้าสุดท้าย)
