@@ -24,17 +24,22 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
   const nextButton = page.getByRole('button', { name: 'ต่อไป' });
   await nextButton.click();
 
-  // 6. ตอบคำถามสุขภาพ (ตัวอย่าง: ส่วนสูง/น้ำหนัก หรือคำถาม "ใช่/ไม่ใช่")
-  // Playwright จะกรอกข้อมูลที่ระบบถามต่อจนถึงหน้าดูราคา
-  // ในที่นี้สมมติว่าต้องใส่ส่วนสูงและน้ำหนักตาม Snapshot ก่อนหน้า
+// 6. ตอบคำถามสุขภาพ (ส่วนสูง/น้ำหนัก)
   if (await page.locator('#body-height').isVisible()) {
       await page.locator('#body-height').fill('160');
       await page.locator('#body-weight').fill('50');
       await page.getByRole('button', { name: 'ต่อไป' }).click();
   }
 
+  // 6.1 เพิ่มเติม: ตอบคำถามเรื่องการสูบบุหรี่ (อ้างอิงจาก Snapshot ref=e78)
+  const smokingQuestion = page.getByText('คุณสูบบุหรี่บ่อยแค่ไหน');
+  if (await smokingQuestion.isVisible()) {
+      // เลือก "ไม่สูบ" (ref=e79)
+      await page.getByRole('button', { name: 'ไม่สูบ' }).click();
+  }
+
   // 7. คลิก "ดูราคาของคุณ"
-  // ปุ่มนี้จะปรากฏหลังจากตอบคำถามครบทุกข้อ
+  // หลังจากตอบคำถามครบ ปุ่มนี้ควรจะปรากฏขึ้นมา
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
   await expect(getQuoteBtn).toBeVisible({ timeout: 15000 });
   await getQuoteBtn.click();
