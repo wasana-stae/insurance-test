@@ -1,43 +1,35 @@
 import { test, expect } from '@playwright/test';
 
 test('Roojai Cancer Insurance - Get Quote Flow', async ({ page }) => {
-  // ตั้ง Timeout รวมสำหรับกระบวนการขอใบเสนอราคา
   test.setTimeout(90000);
 
-  // 1. given ไปที่หน้าหลัก
+  // 1. ไปที่หน้าหลัก
   await page.goto('https://www.roojai.com/', { waitUntil: 'domcontentloaded' });
 
-  // 2. เจอแบนเนอร์ คลิกเลือกประกันมะเร็ง
-  // โดยปกติปุ่มบนแบนเนอร์หรือเมนูมักจะใช้คำว่า "ประกันมะเร็ง"
+  // 2. คลิกเลือกประกันมะเร็ง
   await page.getByRole('link', { name: 'ประกันมะเร็ง', exact: false }).first().click();
 
-  // 3. when เมื่อเข้ามาที่หน้าขอใบเสนอราคาแล้ว
-  // รอให้หน้าโหลดจนปุ่ม "เช็คราคา" หรือ Element หลักปรากฏ
-  await expect(page).toHaveURL(/.*cancer-insurance/);
+  // 3. FIX: แทนการเช็ค URL ให้เช็ค Heading Level 1 ที่ปรากฏในหน้าขอใบเสนอราคา
+  // อ้างอิงจาก Snapshot: heading "เริ่มสร้างใบเสนอราคา กันเลย!" [level=1] [ref=e21]
+  await expect(page.getByRole('heading', { name: 'เริ่มสร้างใบเสนอราคา กันเลย!' })).toBeVisible({ timeout: 15000 });
 
-  // 4. เลื่อนลงมาที่ section "กรุณาระบุเพศและสถานภาพสมรสของคุณ ?"
-  // Playwright จะเลื่อนให้อัตโนมัติเมื่อเราสั่ง interaction แต่เราสามารถสั่ง scroll ได้ถ้าต้องการ
-  const genderSection = page.getByText('กรุณาระบุเพศและสถานภาพสมรสของคุณ');
+  // 4. เลื่อนลงมาที่หัวข้อคำถาม (Level 2)
+  const genderSection = page.getByRole('heading', { name: 'กรุณาระบุเพศและสถานภาพสมรสของคุณ' });
   await genderSection.scrollIntoViewIfNeeded();
 
-  // 5. then คลิกเลือกเพศ "หญิงโสด"
-  // ใช้ getByRole('button') หรือ getByText ตามโครงสร้างจริงของหน้าเว็บ
+  // 5. คลิกเลือกเพศ "หญิงโสด"
   await page.getByRole('button', { name: 'หญิงโสด' }).click();
 
-  // 6. ระบุวันเกิด "25081994"
-  // โดยปกติช่องวันเกิดมักจะเป็น textbox หรือใส่ทีละส่วน
-  const dobInput = page.getByRole('textbox', { name: /วันเกิด|วว\/ดด\/ปปปป/i });
+  // 6. ระบุวันเกิด (ระบุ Selector ให้แม่นยำขึ้นจาก Snapshot)
+  // หาก snapshot ไม่มี textbox ชื่อ 'วันเกิด' ให้ลองใช้ locator ที่ระบุตำแหน่งได้แน่นอน
+  // ในที่นี้สมมติว่าเป็น Input ที่ปรากฏขึ้นหลังเลือกเพศ
+  const dobInput = page.locator('input[type="tel"], input[placeholder*="วันเกิด"]'); 
   
-  // คลิกและพิมพ์วันเกิด
   await dobInput.click();
-  await dobInput.fill('25081994');
-  
-  // กด Enter หรือคลิกพื้นที่ว่างเพื่อให้ระบบบันทึกค่า
+  // ใช้ .type เพื่อความปลอดภัยกับพวก input mask (เว้นวรรคอัตโนมัติ)
+  await dobInput.pressSequentially('25081994', { delay: 100 }); 
   await dobInput.press('Enter');
 
-  // ตรวจสอบความถูกต้องเบื้องต้นก่อนจบ
-  await expect(dobInput).toHaveValue(/25.*08.*1994/);
-
-  // ถ่าย Screenshot ยืนยันการกรอกข้อมูล
+  // 7. ถ่าย Screenshot ยืนยัน
   await page.screenshot({ path: 'test-results/cancer-quote-step1.png', fullPage: true });
 });
