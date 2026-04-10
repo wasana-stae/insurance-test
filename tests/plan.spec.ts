@@ -62,9 +62,14 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
   }
 
-// 12. ตอบคำถามประวัติสุขภาพ (มะเร็ง/ตับอักเสบ/HIV) - **ต้องรอให้เจอหัวข้อก่อน**
-  const medQ = page.getByText(/ท่านเคยป่วย หรือได้รับการรักษาจากแพทย์ด้วยโรคต่อไปนี้/i);
-  await expect(medQ).toBeVisible({ timeout: 10000 }); // รอจนกว่าคำถามจะขึ้น
+// 12. ตอบคำถามประวัติสุขภาพ (มะเร็ง/ตับอักเสบ/HIV)
+  // ใช้ Regex สั้นๆ เพื่อเลี่ยงปัญหาเรื่องตัวอักษรพิเศษหรือการเว้นบรรทัดในข้อความยาว
+  const medQ = page.getByText(/ท่านเคยป่วย.*โรคต่อไปนี้/i);
+  
+  // รอให้คำถามปรากฏและตรวจสอบความพร้อม
+  await expect(medQ).toBeVisible({ timeout: 15000 });
+  
+  // คลิกปุ่ม "ไม่เคย / ไม่มี" ข้อล่าสุด
   await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
 
   // 13. ตอบคำถามการถือครองประกันมะเร็งจากที่อื่น (ถ้ามี)
