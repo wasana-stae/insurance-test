@@ -56,40 +56,35 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
   }
 
   // 11. ตอบคำถามประวัติครอบครัว
-  if (await page.getByText(/บิดา มารดา พี่ – น้อง/i).isVisible()) {
+  const famQ = page.getByText(/บิดา มารดา พี่ – น้อง/i);
+  await famQ.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  if (await famQ.isVisible()) {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
   }
 
-  // 12. ตอบคำถามประวัติสุขภาพ (มะเร็ง/ตับอักเสบ/HIV)
-  if (await page.getByText(/ท่านเคยป่วย หรือได้รับการรักษา/i).isVisible()) {
-    await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
-  }
+// 12. ตอบคำถามประวัติสุขภาพ (มะเร็ง/ตับอักเสบ/HIV) - **ต้องรอให้เจอหัวข้อก่อน**
+  const medQ = page.getByText(/ท่านเคยป่วย หรือได้รับการรักษาจากแพทย์ด้วยโรคต่อไปนี้/i);
+  await expect(medQ).toBeVisible({ timeout: 10000 }); // รอจนกว่าคำถามจะขึ้น
+  await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
 
-  // 13. ตอบคำถามการถือครองประกันมะเร็งจากที่อื่น
-  if (await page.getByText(/ท่านมีหรือกำลังขอเอาประกันภัยโรคมะเร็ง/i).isVisible()) {
+  // 13. ตอบคำถามการถือครองประกันมะเร็งจากที่อื่น (ถ้ามี)
+  const insQ = page.getByText(/ท่านมีหรือกำลังขอเอาประกันภัยโรคมะเร็ง/i);
+  if (await insQ.isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
   }
 
   // 14. ตอบคำถามเรื่องอาชีพและอุตสาหกรรม (ถ้ามี)
-  const industryLoc = page.getByText(/คุณเป็นคนงาน หรือ แรงงาน/i);
-  if (await industryLoc.isVisible()) {
+  const indQ = page.getByText(/คุณเป็นคนงาน หรือ แรงงาน/i);
+  if (await indQ.isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่ใช่' }).click();
   }
 
   // 15. คลิกปุ่ม "ดูราคาของคุณ"
-  // เพิ่มการรอโหลดเครือข่ายเพื่อให้มั่นใจว่า Logic หลังบ้านประมวลผลคำตอบครบทุกข้อแล้ว
-  await page.waitForLoadState('networkidle');
-
   const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
-  
-  // ตรวจสอบว่ามีคำถามอื่นหลงเหลืออยู่หรือไม่ ถ้าปุ่มยังไม่มา
-  if (!(await getQuoteBtn.isVisible())) {
-      // ลองกด Enter เพื่อกระตุ้นระบบ (บางครั้ง UI ไม่ Update)
-      await page.keyboard.press('Enter');
-  }
-
-  await getQuoteBtn.waitFor({ state: 'visible', timeout: 20000 });
+  // รอให้ปุ่ม Enabled และพร้อมคลิก
+  await getQuoteBtn.waitFor({ state: 'visible', timeout: 15000 });
   await getQuoteBtn.click();
+
   // 16. ตรวจสอบหน้าสรุปราคา และถ่าย Screenshot
   // รอจนกว่าจะเห็นสัญลักษณ์ราคา (฿) หรือคำว่า "ใบเสนอราคา"
   await expect(page.getByText(/ใบเสนอราคา|฿/i).first()).toBeVisible({ timeout: 30000 });
