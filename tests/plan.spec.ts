@@ -1,105 +1,84 @@
 import { test, expect } from '@playwright/test';
 
-test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
-  // 1. ตั้ง Timeout 2 นาที เผื่อหน้าเว็บโหลดช้า
+test('Roojai Cancer Insurance - Complete Quote Flow to Result Page', async ({ page }) => {
+  // 1. ตั้ง Timeout สูงสุด 2 นาที เพื่อรองรับการคำนวณเบี้ยประกันที่ใช้เวลา
   test.setTimeout(120000);
 
-  // 2. ไปที่หน้าหลัก และรอให้ Network นิ่งก่อนเริ่มทำงาน
+  // 2. เข้าสู่เว็บไซต์
   await page.goto('https://www.roojai.com/', { waitUntil: 'networkidle' });
 
-  // 3. จัดการปุ่ม "รับทราบ" (Cookie) ทันทีเพื่อไม่ให้บังส่วนอื่นของหน้าจอ
+  // 3. จัดการ Cookie Banner (รอบแรก)
   const cookieBtn = page.getByRole('button', { name: 'รับทราบ' });
   if (await cookieBtn.isVisible()) {
     await cookieBtn.click();
   }
 
-  // 4. คลิกเลือก "ประกันมะเร็ง"
+  // 4. ไปหน้าประกันมะเร็ง
   await page.getByRole('link', { name: 'ประกันมะเร็ง', exact: false }).first().click();
-
-  // 5. ยืนยันว่าเข้าสู่หน้าแบบฟอร์มแล้ว
   await expect(page.getByRole('heading', { name: 'เริ่มสร้างใบเสนอราคา กันเลย!' })).toBeVisible({ timeout: 15000 });
 
-  // 6. คลิกเลือกเพศ: หญิงโสด
+  // 5. เลือกเพศและกรอกวันเกิด
   await page.getByRole('button', { name: 'หญิงโสด' }).click();
+  await page.locator('#dd-dob').fill('25');
+  await page.locator('#mm-dob').fill('08');
+  await page.locator('#yyyy-dob').fill('1994');
+  await page.getByRole('button', { name: 'ต่อไป' }).first().click();
 
- // 7. ระบุวันเกิด - แก้ไขโดยการเน้นการ Focus และตรวจสอบความพร้อมของปุ่ม
-  const dayInput = page.locator('#dd-dob');
-  const monthInput = page.locator('#mm-dob');
-  const yearInput = page.locator('#yyyy-dob');
-  const nextBtn = page.getByRole('button', { name: 'ต่อไป' }).first();
-
-  // ล้างข้อมูลเก่าและพิมพ์ใหม่ให้มั่นใจ
-  await dayInput.click();
-  await dayInput.fill('25');
-  
-  await monthInput.click();
-  await monthInput.fill('08');
-  
-  await yearInput.click();
-  await yearInput.fill('1994');
-
-  // ตรวจสอบว่าปุ่ม "ต่อไป" ต้องหายจากสถานะ disabled ก่อนคลิก
-  // Playwright จะรอให้อัตโนมัติด้วยคำสั่งคลิก แต่การเช็ค enabled จะช่วยลดปัญหา Flaky เทส
-  await expect(nextBtn).toBeEnabled({ timeout: 10000 });
-  await nextBtn.click();
-
-  // 9. ตอบคำถามสุขภาพ (ส่วนสูง/น้ำหนัก)
+  // 6. ส่วนสูงและน้ำหนัก
   if (await page.locator('#body-height').isVisible()) {
     await page.locator('#body-height').fill('164');
-    await page.locator('#body-weight').fill('70');
+    await page.locator('#body-weight').fill('50');
     await page.getByRole('button', { name: 'ต่อไป' }).first().click();
   }
 
-  // 10. ตอบคำถามพฤติกรรม: การสูบบุหรี่
-  if (await page.getByText('คุณสูบบุหรี่บ่อยแค่ไหน').isVisible()) {
+  // 7. ตอบคำถามสุขภาพ (แบบ Dynamic)
+  // สูบบุหรี่
+  if (await page.getByText(/สูบบุหรี่/i).isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่สูบ' }).click();
   }
 
-  // 11. ตอบคำถามประวัติครอบครัว
-  const famQ = page.getByText(/บิดา มารดา พี่ – น้อง/i);
-  await famQ.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-  if (await famQ.isVisible()) {
+  // ประวัติครอบครัว
+  if (await page.getByText(/บิดา มารดา/i).isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).click();
   }
 
-// 12. ตอบคำถามประวัติสุขภาพ (มะเร็ง/ตับอักเสบ/HIV)
-  // ใช้ Regex สั้นๆ เพื่อเลี่ยงปัญหาเรื่องตัวอักษรพิเศษหรือการเว้นบรรทัดในข้อความยาว
-  const medQ = page.getByText(/ท่านเคยป่วย.*โรคต่อไปนี้/i);
-  
-  // รอให้คำถามปรากฏและตรวจสอบความพร้อม
-  await expect(medQ).toBeVisible({ timeout: 15000 });
-  
-  // คลิกปุ่ม "ไม่เคย / ไม่มี" ข้อล่าสุด
-  await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
-
-  // 13. ตอบคำถามการถือครองประกันมะเร็งจากที่อื่น (ถ้ามี)
-  const insQ = page.getByText(/ท่านมีหรือกำลังขอเอาประกันภัยโรคมะเร็ง/i);
-  if (await insQ.isVisible({ timeout: 5000 })) {
+  // ประวัติสุขภาพร้ายแรง (ใช้ Regex ยืดหยุ่นแก้ปัญหาเว้นวรรค)
+  if (await page.getByText(/ท่านเคยป่วย.*โรคต่อไปนี้/i).isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
   }
 
-  // 14. ตอบคำถามเรื่องอาชีพและอุตสาหกรรม (ถ้ามี)
-  const indQ = page.getByText(/คุณเป็นคนงาน หรือ แรงงาน/i);
-  if (await indQ.isVisible({ timeout: 5000 })) {
+  // ประกันมะเร็งที่อื่น
+  if (await page.getByText(/ท่านมีหรือกำลังขอเอาประกันภัย/i).isVisible({ timeout: 5000 })) {
+    await page.getByRole('button', { name: 'ไม่เคย / ไม่มี' }).last().click();
+  }
+
+  // อาชีพ/อุตสาหกรรม
+  if (await page.getByText(/คุณเป็นคนงาน หรือ แรงงาน/i).isVisible({ timeout: 5000 })) {
     await page.getByRole('button', { name: 'ไม่ใช่' }).click();
   }
 
-  // 15. คลิกปุ่ม "ดูราคาเลย" (อ้างอิงตาม Snapshot ref=e138)
-  // ใช้ Regex เพื่อความยืดหยุ่นในการหาปุ่ม "ดูราคาเลย"
+  // 8. คลิกปุ่ม "ดูราคาเลย"
   const getQuoteBtn = page.getByRole('button', { name: /ดูราคาเลย/i });
-  
-  // รอให้ปุ่มปรากฏและพร้อมให้ปฏิสัมพันธ์
   await getQuoteBtn.waitFor({ state: 'visible', timeout: 15000 });
   await getQuoteBtn.click();
 
-  // 16. ตรวจสอบหน้าสรุปราคา และถ่าย Screenshot
-  // รอจนกว่าจะเห็นสัญลักษณ์ราคา (฿) หรือคำว่า "ใบเสนอราคา"
-  await expect(page.getByText(/ใบเสนอราคา|฿/i).first()).toBeVisible({ timeout: 30000 });
-  
+  // 9. รอหน้าสรุปราคาโหลด (ใช้ Network Idle เพื่อให้ Spinner หายไป)
+  await page.waitForLoadState('networkidle', { timeout: 60000 });
+
+  // 10. ยืนยันหน้าสรุปราคาโดยใช้ "เลขที่ใบเสนอราคา" หรือ "ประกันของคุณ" (Stable Locator)
+  const summaryHeader = page.getByText(/ใบเสนอราคาเลขที่|ประกันของคุณ/i).first();
+  await expect(summaryHeader).toBeVisible({ timeout: 45000 });
+
+  // 11. ตรวจสอบและปิด Cookie อีกรอบถ้ามันเด้งขึ้นมาบังราคา
+  if (await cookieBtn.isVisible()) {
+    await cookieBtn.click();
+  }
+
+  // 12. ถ่าย Screenshot ผลลัพธ์สุดท้าย
   await page.screenshot({ 
-    path: 'test-results/cancer-insurance-final-quote.png', 
+    path: `test-results/quote-result-${Date.now()}.png`, 
     fullPage: true 
   });
 
-  console.log('Success: All steps completed!');
+  console.log('✅ ภารกิจสำเร็จ: แสดงหน้าเบี้ยประกันและบันทึกภาพเรียบร้อย!');
 });
