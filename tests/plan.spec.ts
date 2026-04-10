@@ -84,9 +84,11 @@ test('Roojai Cancer Insurance - Complete Quote Flow', async ({ page }) => {
     await page.getByRole('button', { name: 'ไม่ใช่' }).click();
   }
 
-  // 15. คลิกปุ่ม "ดูราคาของคุณ"
-  const getQuoteBtn = page.getByRole('button', { name: 'ดูราคาของคุณ' });
-  // รอให้ปุ่ม Enabled และพร้อมคลิก
+  // 15. คลิกปุ่ม "ดูราคาเลย" (อ้างอิงตาม Snapshot ref=e138)
+  // ใช้ Regex เพื่อความยืดหยุ่นในการหาปุ่ม "ดูราคาเลย"
+  const getQuoteBtn = page.getByRole('button', { name: /ดูราคาเลย/i });
+  
+  // รอให้ปุ่มปรากฏและพร้อมให้ปฏิสัมพันธ์
   await getQuoteBtn.waitFor({ state: 'visible', timeout: 15000 });
   await getQuoteBtn.click();
 
